@@ -9,7 +9,9 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
 import time
-from typing import Optional
+import math
+from typing import Tuple, Optional
+from collections import deque
 
 from config import ConfigManager
 from utils.logger import setup_logger
@@ -289,26 +291,159 @@ class MainWindow:
             # 更新界面显示
             self.controls_panel.update_mouse_status(False)
     
+    def _create_advanced_filter(self):
+        """创建高级平滑滤波器"""
+        # 使用加权移动平均滤波器
+        return {
+            'positions': deque(maxlen=6),
+            'weights': [0.3, 0.25, 0.2, 0.15, 0.07, 0.03]  # 指数衰减权重
+        }
+    
+    def _create_velocity_filter(self):
+        """创建速度滤波器"""
+        return {
+            'velocities': deque(maxlen=8),
+            'accelerations': deque(maxlen=6)
+        }
+    
+    def _assess_stability(self, x: float, y: float) -> bool:
+        """评估当前手势的稳定性"""
+        # 添加当前位置到稳定性窗口
+        self.stability_window.append((x, y, time.perf_counter()))
+        
+        if len(self.stability_window) < self.min_stable_frames:
+            return False
+        
+        # 计算最近几帧的位移变化
+        recent_positions = list(self.stability_window)[-self.min_stable_frames:]
+        displacements = []
+        
+        for i in range(1, len(recent_positions)):
+            dx = recent_positions[i][0] - recent_positions[i-1][0]
+            dy = recent_positions[i][1] - recent_positions[i-1][1]
+            displacement = math.sqrt(dx*dx + dy*dy)
+            displacements.append(displacement)
+        
+        # 如果平均位移小于抖动阈值，则认为稳定
+        avg_displacement = sum(displacements) / len(displacements)
+        return avg_displacement < self.jitter_threshold
+    
+    def _predict_position(self, current_x: float, current_y: float, timestamp: float) -> Tuple[float, float]:
+        """改进的预测算法"""
+        self.position_history.append((current_x, current_y, timestamp))
+        
+        # 保持历史记录大小
+        if len(self.position_history) > self.history_size:
+            self.position_history.pop(0)
+        
+        if len(self.position_history) >= 3:
+            if len(self.position_history) >= 6:
+                # 六阶预测：使用更多历史信息
+                positions = list(self.position_history)[-6:]
+                # 计算多阶差分
+                velocities = []
+                for i in range(1, len(positions)):
+                    dx = positions[i][0] - positions[i-1][0]
+                    dy = positions[i][1] - positions[i-1][1]
+                    velocities.append((dx, dy))
+                
+                # 加速度
+                accelerations = []
+                for i in range(1, len(velocities)):
+                    ddx = velocities[i][0] - velocities[i-1][0]
+                    ddy = velocities[i][1] - velocities[i-1][1]
+                    accelerations.append((ddx, ddy))
+                
+                # 预测（保守策略）
+                last_pos = positions[-1]
+                last_vel = velocities[-1]
+                last_acc = accelerations[-1] if accelerations else (0, 0)
+                
+                predicted_x = last_pos[0] + last_vel[0] + last_acc[0] * self.prediction_coefficient * 0.7
+                predicted_y = last_pos[1] + last_vel[1] + last_acc[1] * self.prediction_coefficient * 0.7
+            else:
+                # 三阶预测
+                p1, p2, p3 = list(self.position_history)[-3:]
+                dx1 = p2[0] - p1[0]
+                dy1 = p2[1] - p1[1]
+                dx2 = p3[0] - p2[0]
+                dy2 = p3[1] - p2[1]
+                ddx = dx2 - dx1
+                ddy = dy2 - dy1
+                predicted_x = p3[0] + dx2 + ddx * self.prediction_coefficient * 0.8
+                predicted_y = p3[1] + dy2 + ddy * self.prediction_coefficient * 0.8
+        else:
+            # 简单预测
+            predicted_x, predicted_y = current_x, current_y
+        
+        return predicted_x, predicted_y
+    
+    def _apply_advanced_smoothing(self, x: float, y: float, timestamp: float) -> Tuple[float, float]:
+        """应用高级平滑滤波"""
+        # 更新滤波器
+        self.smoothing_filter['positions'].append((x, y, timestamp))
+        
+        if len(self.smoothing_filter['positions']) >= 3:
+            # 加权移动平均
+            weighted_x = 0
+            weighted_y = 0
+            positions = list(self.smoothing_filter['positions'])
+            
+            # 只使用可用的权重
+            weights_to_use = self.smoothing_filter['weights'][:len(positions)]
+            weight_sum = sum(weights_to_use)
+            
+            for i, (pos_x, pos_y, _) in enumerate(positions):
+                if i < len(weights_to_use):
+                    weight = weights_to_use[i] / weight_sum
+                    weighted_x += pos_x * weight
+                    weighted_y += pos_y * weight
+            
+            return weighted_x, weighted_y
+        else:
+            return x, y
+    
+    def _apply_conservative_smoothing(self, x: float, y: float) -> Tuple[float, float]:
+        """应用保守平滑策略（用于不稳定情况）"""
+        if self.last_result_cache:
+            last_x, last_y = self.last_result_cache
+            # 非常保守的平滑：只允许小幅度变化
+            max_change = 0.02  # 最大2%的变化
+            dx = max(-max_change, min(max_change, x - last_x))
+            dy = max(-max_change, min(max_change, y - last_y))
+            return last_x + dx, last_y + dy
+        else:
+            return x, y
+    
     def _recognition_loop(self):
-        """手势识别主循环 - 300FPS极致优化版（预测性平滑算法）"""
+        """手势识别主循环 - 防抖动优化版（300FPS + 高级平滑滤波）"""
         # 300FPS极致优化参数
         target_fps = 300  # 提升到300FPS
         frame_interval = 1.0 / target_fps  # 约3.33ms
         last_frame_time = time.perf_counter()  # 纳秒级精确计时
         
-        # 预测性平滑算法参数（针对300FPS优化）
+        # 防抖动优化参数
         self.position_history = []  # 位置历史记录
-        self.history_size = 5  # 5帧历史窗口（300FPS下更长历史）
-        self.prediction_coefficient = 0.2  # 降低预测系数（300FPS下更稳定）
+        self.history_size = 8  # 增大历史窗口提高稳定性
+        self.prediction_coefficient = 0.15  # 降低预测系数增加稳定性
         
-        # 智能缓存机制（300FPS优化）
+        # 高级平滑滤波器
+        self.smoothing_filter = self._create_advanced_filter()
+        self.velocity_filter = self._create_velocity_filter()
+        
+        # 智能缓存机制
         self.last_result_cache = None
         self.cache_timestamp = 0
-        self.cache_duration = 0.003  # 3ms缓存窗口（300FPS下更短）
+        self.cache_duration = 0.005  # 5ms缓存窗口（适度延长）
+        
+        # 抖动抑制参数
+        self.jitter_threshold = 0.005  # 抖动检测阈值
+        self.stability_window = deque(maxlen=10)  # 稳定性检测窗口
+        self.min_stable_frames = 3  # 最小稳定帧数
         
         # 帧缓冲机制优化
         frame_queue = []
-        max_queue_size = 1  # 300FPS下最小队列提高响应性
+        max_queue_size = 2  # 适度增加队列大小
         
         while self.is_running:
             current_time = time.perf_counter()
@@ -318,12 +453,12 @@ class MainWindow:
                 continue
                 
             try:
-                # 精确的帧率控制（300FPS优化）
+                # 精确的帧率控制
                 elapsed_time = current_time - last_frame_time
                 if elapsed_time < frame_interval:
                     sleep_time = frame_interval - elapsed_time
                     if sleep_time > 0:
-                        time.sleep(sleep_time * 0.9)  # 300FPS下睡眠90%剩余时间
+                        time.sleep(sleep_time * 0.85)  # 适度睡眠
                 
                 # 获取摄像头帧并处理
                 frame, gesture, hand_landmarks = self.hand_detector.process_frame()
@@ -347,94 +482,60 @@ class MainWindow:
                         self.root.after(0, lambda g=latest_gesture, c=landmark_count: 
                                       self.preview_panel.update_gesture_display(g, c))
                     
-                    # 300FPS鼠标控制处理（极致预测算法）
+                    # 防抖动鼠标控制处理
                     if self.mouse_control_enabled and latest_gesture == "鼠标移动":
                         hand_center = self.hand_detector.gesture_recognizer.get_hand_center()
                         if hand_center:
                             # 检查缓存
                             current_timestamp = time.perf_counter()
                             if (self.last_result_cache is not None and 
-                                current_timestamp - self.cache_timestamp < self.cache_duration):
+                                current_time - self.cache_timestamp < self.cache_duration):
                                 # 使用缓存结果
-                                predicted_x, predicted_y = self.last_result_cache
+                                smoothed_x, smoothed_y = self.last_result_cache
                             else:
-                                # 计算预测位置
+                                # 获取原始坐标
                                 current_x, current_y = hand_center
-                                self.position_history.append((current_x, current_y, current_timestamp))
                                 
-                                # 保持历史记录大小
-                                if len(self.position_history) > self.history_size:
-                                    self.position_history.pop(0)
+                                # 抖动检测和稳定性评估
+                                is_stable = self._assess_stability(current_x, current_y)
                                 
-                                # 300FPS预测性平滑算法
-                                if len(self.position_history) >= 3:
-                                    # 多帧预测：使用加速度和更高阶信息
-                                    if len(self.position_history) >= 5:
-                                        # 五帧预测：四阶预测
-                                        p1, p2, p3, p4, p5 = list(self.position_history)
-                                        # 计算各阶差分
-                                        v1 = (p2[0] - p1[0], p2[1] - p1[1])
-                                        v2 = (p3[0] - p2[0], p3[1] - p2[1])
-                                        v3 = (p4[0] - p3[0], p4[1] - p3[1])
-                                        v4 = (p5[0] - p4[0], p5[1] - p4[1])
-                                        
-                                        # 加速度
-                                        a1 = (v2[0] - v1[0], v2[1] - v1[1])
-                                        a2 = (v3[0] - v2[0], v3[1] - v2[1])
-                                        a3 = (v4[0] - v3[0], v4[1] - v3[1])
-                                        
-                                        # 预测下一位置（高阶预测）
-                                        predicted_x = p5[0] + v4[0] + a3[0] + (a3[0] - a2[0]) * self.prediction_coefficient
-                                        predicted_y = p5[1] + v4[1] + a3[1] + (a3[1] - a2[1]) * self.prediction_coefficient
-                                    else:
-                                        # 三帧预测：使用加速度信息
-                                        p1, p2, p3 = list(self.position_history)[-3:]
-                                        dx1 = p2[0] - p1[0]
-                                        dy1 = p2[1] - p1[1]
-                                        dx2 = p3[0] - p2[0]
-                                        dy2 = p3[1] - p2[1]
-                                        
-                                        # 加速度
-                                        ddx = dx2 - dx1
-                                        ddy = dy2 - dy1
-                                        
-                                        # 预测下一位置
-                                        predicted_x = p3[0] + dx2 + ddx * self.prediction_coefficient
-                                        predicted_y = p3[1] + dy2 + ddy * self.prediction_coefficient
-                                elif len(self.position_history) >= 2:
-                                    # 两帧预测：使用速度信息
-                                    p1, p2 = list(self.position_history)[-2:]
-                                    dx = p2[0] - p1[0]
-                                    dy = p2[1] - p1[1]
-                                    predicted_x = p2[0] + dx * self.prediction_coefficient
-                                    predicted_y = p2[1] + dy * self.prediction_coefficient
+                                if is_stable:
+                                    # 稳定时使用预测算法
+                                    predicted_x, predicted_y = self._predict_position(current_x, current_y, current_timestamp)
+                                    
+                                    # 高级平滑滤波
+                                    smoothed_x, smoothed_y = self._apply_advanced_smoothing(
+                                        predicted_x, predicted_y, current_timestamp
+                                    )
                                 else:
-                                    # 不足两帧，直接使用当前位置
-                                    predicted_x, predicted_y = current_x, current_y
+                                    # 不稳定时使用保守策略
+                                    smoothed_x, smoothed_y = self._apply_conservative_smoothing(
+                                        current_x, current_y
+                                    )
                                 
                                 # 边界检查
-                                predicted_x = max(0.0, min(1.0, predicted_x))
-                                predicted_y = max(0.0, min(1.0, predicted_y))
+                                smoothed_x = max(0.0, min(1.0, smoothed_x))
+                                smoothed_y = max(0.0, min(1.0, smoothed_y))
                                 
                                 # 更新缓存
-                                self.last_result_cache = (predicted_x, predicted_y)
+                                self.last_result_cache = (smoothed_x, smoothed_y)
                                 self.cache_timestamp = current_timestamp
                             
                             # 执行鼠标移动
                             try:
-                                screen_x = int(predicted_x * self.mouse_controller.screen_width)
-                                screen_y = int(predicted_y * self.mouse_controller.screen_height)
+                                screen_x = int(smoothed_x * self.mouse_controller.screen_width)
+                                screen_y = int(smoothed_y * self.mouse_controller.screen_height)
                                 screen_x = max(0, min(self.mouse_controller.screen_width, screen_x))
                                 screen_y = max(0, min(self.mouse_controller.screen_height, screen_y))
                                 
                                 self.mouse_controller.mouse.position = (screen_x, screen_y)
                                 
                                 if self.debug_mode:
-                                    print(f"[300FPS] 极致预测移动: ({predicted_x:.3f}, {predicted_y:.3f}) → ({screen_x}, {screen_y})")
+                                    print(f"[防抖动] 移动: ({smoothed_x:.3f}, {smoothed_y:.3f}) → ({screen_x}, {screen_y})")
                                     
                             except Exception as e:
                                 if self.debug_mode:
-                                    print(f"[300FPS ERROR] 鼠标移动出错: {e}")
+                                    print(f"[防抖动 ERROR] 鼠标移动出错: {e}")
                         elif latest_gesture != "鼠标移动":
                             # 其他手势使用标准处理
                             try:
@@ -442,29 +543,29 @@ class MainWindow:
                                 self.mouse_controller.handle_gesture(latest_gesture, hand_center)
                             except Exception as e:
                                 if self.debug_mode:
-                                    print(f"[300FPS ERROR] 手势执行出错: {e}")
+                                    print(f"[防抖动 ERROR] 手势执行出错: {e}")
                 
                 # 更新帧时间
                 last_frame_time = time.perf_counter()
                 
-                # 性能监控（每300帧输出一次）
+                # 性能监控
                 if hasattr(self, '_perf_counter'):
                     self._perf_counter += 1
                     if self._perf_counter % 300 == 0 and self.debug_mode:
                         actual_fps = 300 / (current_time - getattr(self, '_last_perf_time', current_time))
-                        print(f"[300FPS PERF] 实际FPS: {actual_fps:.1f}")
+                        print(f"[防抖动 PERF] 实际FPS: {actual_fps:.1f}")
                         self._last_perf_time = current_time
                 else:
                     self._perf_counter = 1
                     self._last_perf_time = current_time
                 
             except Exception as e:
-                self.logger.error(f"300FPS识别循环出错: {e}")
+                self.logger.error(f"防抖动识别循环出错: {e}")
                 if self.debug_mode:
-                    print(f"[300FPS ERROR] 识别循环异常: {e}")
+                    print(f"[防抖动 ERROR] 识别循环异常: {e}")
                     import traceback
                     traceback.print_exc()
-                time.sleep(0.0005)  # 0.5ms错误延迟
+                time.sleep(0.001)  # 1ms错误延迟
     
     def _safe_update_preview(self, frame, gesture, hand_landmarks):
         """安全的预览更新方法"""

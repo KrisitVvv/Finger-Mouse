@@ -64,3 +64,51 @@
 2026-02-15 00:44:13 - utils.logger - INFO - 手势识别已启动
 2026-02-15 00:44:37 - utils.logger - INFO - 程序正在关闭...
 2026-02-15 00:44:38 - utils.logger - INFO - 资源已释放，程序退出
+2026-02-15 00:45:48 - utils.logger - INFO - 主窗口初始化完成
+2026-02-15 00:46:02 - utils.logger - INFO - 手势识别已启动
+2026-02-15 00:52:25 - utils.logger - INFO - 主窗口初始化完成
+2026-02-15 00:52:45 - utils.logger - INFO - 手势识别已启动
+2026-02-15 00:52:47 - utils.logger - INFO - 鼠标控制已开启
+2026-02-15 00:53:16 - utils.logger - INFO - 程序正在关闭...
+2026-02-15 00:53:17 - utils.logger - INFO - 资源已释放，程序退出
+2026-02-15 00:58:01 - utils.logger - INFO - 主窗口初始化完成
+2026-02-15 00:58:26 - utils.logger - INFO - 手势识别已启动
+2026-02-15 00:58:28 - utils.logger - INFO - 鼠标控制已开启
+2026-02-15 00:58:31 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:31 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:31 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:31 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:33 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:33 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:33 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:33 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:33 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:34 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:34 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:34 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:38 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:38 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:38 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:38 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:39 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:39 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:39 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:39 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:39 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:39 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:39 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:39 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:39 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:40 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:40 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:40 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:40 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:40 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:40 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:40 - utils.logger - ERROR - 防抖动识别循环出错: name 'math' is not defined
+2026-02-15 00:58:44 - utils.logger - INFO - 程序正在关闭...
+2026-02-15 00:58:44 - utils.logger - INFO - 资源已释放，程序退出
+2026-02-15 00:59:17 - utils.logger - INFO - 主窗口初始化完成
+2026-02-15 00:59:44 - utils.logger - INFO - 手势识别已启动
+2026-02-15 00:59:49 - utils.logger - INFO - 鼠标控制已开启
+2026-02-15 01:02:05 - utils.logger - INFO - 手势识别已启动

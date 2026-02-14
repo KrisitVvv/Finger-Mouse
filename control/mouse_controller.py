@@ -28,37 +28,37 @@ class MouseController:
         from config.gesture_mappings import gesture_mapper
         self.gesture_mapper = gesture_mapper
         
-        # 300FPS极致优化参数
-        self.smoothing_factor = 0.8  # 更高平滑度配合300FPS预测算法
-        self.movement_scale = 3.5   # 稍高移动速度（300FPS下更精确）
-        self.click_cooldown = 0.1   # 更快点击响应100ms
-        self.scroll_sensitivity = 25
-        self.history_size = 5       # 更大窗口提高300FPS响应性
+        # 防抖动优化参数
+        self.smoothing_factor = 0.85  # 更高平滑度
+        self.movement_scale = 3.0     # 适度移动速度（避免过度敏感）
+        self.click_cooldown = 0.12    # 120ms点击响应（适度延缓）
+        self.scroll_sensitivity = 20
+        self.history_size = 6         # 适中历史窗口
         
-        # 状态跟踪
+        # 状态跟踪（增强稳定性）
         self.last_position = None
         self.is_dragging = False
         self.last_click_time = 0
-        self.click_threshold = 0.015  # 300FPS下更敏感
-        self.drag_threshold = 0.008   # 300FPS下更精确
+        self.click_threshold = 0.02   # 适度敏感度
+        self.drag_threshold = 0.012   # 适度精确度
         
         # 手势历史用于稳定性判断
         self.gesture_history = deque(maxlen=self.history_size)
-        self.stability_threshold = 0.7  # 70%稳定性要求（300FPS下更严格）
+        self.stability_threshold = 0.65  # 65%稳定性要求
         
-        # 300FPS专用优化
-        self.velocity_history = deque(maxlen=8)  # 速度历史记录
-        self.acceleration_history = deque(maxlen=6)  # 加速度历史记录
+        # 专用优化
+        self.velocity_history = deque(maxlen=6)  # 适度速度历史
+        self.acceleration_history = deque(maxlen=4)  # 适度加速度历史
         
         # 初始化其他必要状态变量
         self.control_enabled = True
         self.mouse_pressed = False
         self.click_state = "released"
         self.last_scroll_time = 0
-        self.scroll_cooldown = 0.08  # 80ms滚轮冷却
-        self.scroll_amount = 4
+        self.scroll_cooldown = 0.1    # 100ms滚轮冷却
+        self.scroll_amount = 3
         self.last_desktop_return = 0
-        self.desktop_return_cooldown = 0.8
+        self.desktop_return_cooldown = 1.0
         self.desktop_return_active = False
         self.right_click_ready = False
         self.debug_mode = False
