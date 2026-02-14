@@ -19,10 +19,10 @@ class CameraManager:
         self.camera_index = 0
         self.width = 640
         self.height = 480
-        self.fps = 15
+        self.fps = 30
     
     def initialize(self, camera_index: int = 0, width: int = 640, 
-                   height: int = 480, fps: int = 15) -> bool:
+                   height: int = 480, fps: int = 30) -> bool:
         """
         初始化摄像头
         
@@ -91,16 +91,13 @@ class CameraManager:
             图像帧，如果失败返回None
         """
         if not self.is_initialized or not self.cap:
-            # 尝试初始化
-            if not self.initialize():
-                return None
+            return None
         
         try:
             ret, frame = self.cap.read()
             if ret:
                 return frame
             else:
-                print("无法读取摄像头帧")
                 return None
         except Exception as e:
             print(f"获取帧时出错: {e}")

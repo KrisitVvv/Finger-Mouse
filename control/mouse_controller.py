@@ -7,6 +7,7 @@
 
 import time
 from typing import Tuple, Optional
+from collections import deque
 from pynput.mouse import Button, Controller as MouseControllerImpl
 from pynput.keyboard import Key, Controller as KeyboardControllerImpl
 
@@ -17,51 +18,52 @@ from config.gesture_mappings import gesture_mapper, GestureAction
 class MouseController:
     """鼠标控制器类 - 手腕控制优化版本"""
     
-    def __init__(self):
-        # 修复递归错误：使用正确的控制器类名
+    def __init__(self, screen_width: int = 1920, screen_height: int = 1080):
         self.mouse = MouseControllerImpl()
         self.keyboard = KeyboardControllerImpl()
-        self.mouse_pressed = False
-        self.right_click_ready = False
-        self.screen_width = 1920
-        self.screen_height = 1080
-        self.scroll_sensitivity = 1.0
+        self.screen_width = screen_width
+        self.screen_height = screen_height
         
-        # 鼠标移动控制 - 为手腕控制优化
-        self.last_hand_position = (0.5, 0.5)
-        self.smoothing_factor = 0.4  # 适中的平滑因子
-        self.movement_scale = 2.5    # 增加移动速度，补偿手腕移动幅度
-        
-        # 移动历史记录用于更平滑的处理
-        self.position_history = []
-        self.history_size = 5  # 适中的历史记录大小
-        
-        # 点击控制
-        self.last_click_time = 0
-        self.click_cooldown = 0.2    # 200ms冷却时间
-        self.click_state = "released"  # "pressed" 或 "released"
-        
-        # 滚轮控制
-        self.last_scroll_time = 0
-        self.scroll_cooldown = 0.1   # 100ms冷却时间
-        self.scroll_amount = 3       # 每次滚动的单位数
-        
-        # 手势状态跟踪
-        self.last_gesture = "无"
-        self.gesture_start_time = time.time()
-        
-        # 回到桌面功能状态
-        self.desktop_return_active = False
-        self.desktop_return_cooldown = 2.0  # 2秒冷却时间
-        self.last_desktop_return = 0
-        
-        # 控制状态标志
-        self.control_enabled = True  # 是否允许鼠标控制
-        self.last_control_disable_time = 0
-        self.control_resume_delay = 0.5  # 0.5秒后才能重新启用控制
-        
-        # 使用手势映射系统
+        # 导入手势映射器
+        from config.gesture_mappings import gesture_mapper
         self.gesture_mapper = gesture_mapper
+        
+        # 300FPS极致优化参数
+        self.smoothing_factor = 0.8  # 更高平滑度配合300FPS预测算法
+        self.movement_scale = 3.5   # 稍高移动速度（300FPS下更精确）
+        self.click_cooldown = 0.1   # 更快点击响应100ms
+        self.scroll_sensitivity = 25
+        self.history_size = 5       # 更大窗口提高300FPS响应性
+        
+        # 状态跟踪
+        self.last_position = None
+        self.is_dragging = False
+        self.last_click_time = 0
+        self.click_threshold = 0.015  # 300FPS下更敏感
+        self.drag_threshold = 0.008   # 300FPS下更精确
+        
+        # 手势历史用于稳定性判断
+        self.gesture_history = deque(maxlen=self.history_size)
+        self.stability_threshold = 0.7  # 70%稳定性要求（300FPS下更严格）
+        
+        # 300FPS专用优化
+        self.velocity_history = deque(maxlen=8)  # 速度历史记录
+        self.acceleration_history = deque(maxlen=6)  # 加速度历史记录
+        
+        # 初始化其他必要状态变量
+        self.control_enabled = True
+        self.mouse_pressed = False
+        self.click_state = "released"
+        self.last_scroll_time = 0
+        self.scroll_cooldown = 0.08  # 80ms滚轮冷却
+        self.scroll_amount = 4
+        self.last_desktop_return = 0
+        self.desktop_return_cooldown = 0.8
+        self.desktop_return_active = False
+        self.right_click_ready = False
+        self.debug_mode = False
+        self.last_hand_position = (0.5, 0.5)
+        self.last_gesture = ""
     
     def handle_gesture(self, gesture: str, hand_center: Tuple[float, float] = None):
         """处理手势并执行相应鼠标操作 - 性能优化版"""

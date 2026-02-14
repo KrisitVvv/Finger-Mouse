@@ -290,88 +290,181 @@ class MainWindow:
             self.controls_panel.update_mouse_status(False)
     
     def _recognition_loop(self):
-        """手势识别主循环 - 优化版（减少闪烁，提高流畅度）"""
-        # 优化帧率控制参数
-        target_fps = 60  # 保持60FPS
-        frame_interval = 1.0 / target_fps  # 约16.67ms
+        """手势识别主循环 - 300FPS极致优化版（预测性平滑算法）"""
+        # 300FPS极致优化参数
+        target_fps = 300  # 提升到300FPS
+        frame_interval = 1.0 / target_fps  # 约3.33ms
+        last_frame_time = time.perf_counter()  # 纳秒级精确计时
         
-        # 帧缓冲机制
+        # 预测性平滑算法参数（针对300FPS优化）
+        self.position_history = []  # 位置历史记录
+        self.history_size = 5  # 5帧历史窗口（300FPS下更长历史）
+        self.prediction_coefficient = 0.2  # 降低预测系数（300FPS下更稳定）
+        
+        # 智能缓存机制（300FPS优化）
+        self.last_result_cache = None
+        self.cache_timestamp = 0
+        self.cache_duration = 0.003  # 3ms缓存窗口（300FPS下更短）
+        
+        # 帧缓冲机制优化
         frame_queue = []
-        max_queue_size = 3  # 最大队列大小
+        max_queue_size = 1  # 300FPS下最小队列提高响应性
         
         while self.is_running:
-            loop_start_time = time.time()
+            current_time = time.perf_counter()
             
             if self.is_paused:
                 time.sleep(frame_interval)
                 continue
                 
             try:
+                # 精确的帧率控制（300FPS优化）
+                elapsed_time = current_time - last_frame_time
+                if elapsed_time < frame_interval:
+                    sleep_time = frame_interval - elapsed_time
+                    if sleep_time > 0:
+                        time.sleep(sleep_time * 0.9)  # 300FPS下睡眠90%剩余时间
+                
                 # 获取摄像头帧并处理
                 frame, gesture, hand_landmarks = self.hand_detector.process_frame()
                 if frame is not None:
                     # 帧缓冲管理
-                    frame_queue.append((frame, gesture, hand_landmarks))
+                    frame_queue.append((frame, gesture, hand_landmarks, time.perf_counter()))
                     if len(frame_queue) > max_queue_size:
-                        frame_queue.pop(0)  # 移除最老的帧
+                        frame_queue.pop(0)
                     
-                    # 只处理最新的帧进行显示更新
-                    latest_frame, latest_gesture, latest_landmarks = frame_queue[-1]
+                    # 处理最新的帧
+                    latest_frame, latest_gesture, latest_landmarks, frame_timestamp = frame_queue[-1]
                     
-                    # 使用after_idle在GUI空闲时更新显示，减少闪烁
-                    self.root.after_idle(
-                        lambda f=latest_frame.copy(), g=latest_gesture, l=latest_landmarks: 
-                        self._safe_update_preview(f, g, l)
-                    )
+                    # 异步更新预览显示
+                    self.root.after(0, lambda f=latest_frame.copy(), g=latest_gesture, l=latest_landmarks: 
+                                  self._safe_update_preview(f, g, l))
                     
-                    # 处理手势逻辑（在后台线程中）
+                    # 手势处理优化
                     if latest_gesture != self.current_gesture:
                         self.current_gesture = latest_gesture
                         landmark_count = len(latest_landmarks.landmark) if latest_landmarks else 0
-                        
-                        # 异步更新手势显示
-                        self.root.after_idle(
-                            lambda g=latest_gesture, c=landmark_count: 
-                            self.preview_panel.update_gesture_display(g, c)
-                        )
-                        
-                        # 鼠标控制处理
-                        if self.mouse_control_enabled:
-                            hand_center = self.hand_detector.gesture_recognizer.get_hand_center()
-                            
-                            # 鼠标移动手势的优化处理
-                            if latest_gesture == "鼠标移动" and hand_center:
-                                point5_x, point5_y = hand_center
-                                screen_width, screen_height = 1920, 1080
-                                screen_x = int(point5_x * screen_width)
-                                screen_y = int(point5_y * screen_height)
-                                screen_x = max(0, min(screen_width, screen_x))
-                                screen_y = max(0, min(screen_height, screen_y))
-                                
-                                # 直接移动鼠标
-                                self.mouse_controller.mouse.position = (screen_x, screen_y)
+                        self.root.after(0, lambda g=latest_gesture, c=landmark_count: 
+                                      self.preview_panel.update_gesture_display(g, c))
+                    
+                    # 300FPS鼠标控制处理（极致预测算法）
+                    if self.mouse_control_enabled and latest_gesture == "鼠标移动":
+                        hand_center = self.hand_detector.gesture_recognizer.get_hand_center()
+                        if hand_center:
+                            # 检查缓存
+                            current_timestamp = time.perf_counter()
+                            if (self.last_result_cache is not None and 
+                                current_timestamp - self.cache_timestamp < self.cache_duration):
+                                # 使用缓存结果
+                                predicted_x, predicted_y = self.last_result_cache
                             else:
-                                # 其他手势使用标准处理
-                                try:
-                                    self.mouse_controller.handle_gesture(latest_gesture, hand_center)
-                                except Exception as e:
-                                    if self.debug_mode:
-                                        print(f"[ERROR] 手势执行出错: {e}")
+                                # 计算预测位置
+                                current_x, current_y = hand_center
+                                self.position_history.append((current_x, current_y, current_timestamp))
+                                
+                                # 保持历史记录大小
+                                if len(self.position_history) > self.history_size:
+                                    self.position_history.pop(0)
+                                
+                                # 300FPS预测性平滑算法
+                                if len(self.position_history) >= 3:
+                                    # 多帧预测：使用加速度和更高阶信息
+                                    if len(self.position_history) >= 5:
+                                        # 五帧预测：四阶预测
+                                        p1, p2, p3, p4, p5 = list(self.position_history)
+                                        # 计算各阶差分
+                                        v1 = (p2[0] - p1[0], p2[1] - p1[1])
+                                        v2 = (p3[0] - p2[0], p3[1] - p2[1])
+                                        v3 = (p4[0] - p3[0], p4[1] - p3[1])
+                                        v4 = (p5[0] - p4[0], p5[1] - p4[1])
+                                        
+                                        # 加速度
+                                        a1 = (v2[0] - v1[0], v2[1] - v1[1])
+                                        a2 = (v3[0] - v2[0], v3[1] - v2[1])
+                                        a3 = (v4[0] - v3[0], v4[1] - v3[1])
+                                        
+                                        # 预测下一位置（高阶预测）
+                                        predicted_x = p5[0] + v4[0] + a3[0] + (a3[0] - a2[0]) * self.prediction_coefficient
+                                        predicted_y = p5[1] + v4[1] + a3[1] + (a3[1] - a2[1]) * self.prediction_coefficient
+                                    else:
+                                        # 三帧预测：使用加速度信息
+                                        p1, p2, p3 = list(self.position_history)[-3:]
+                                        dx1 = p2[0] - p1[0]
+                                        dy1 = p2[1] - p1[1]
+                                        dx2 = p3[0] - p2[0]
+                                        dy2 = p3[1] - p2[1]
+                                        
+                                        # 加速度
+                                        ddx = dx2 - dx1
+                                        ddy = dy2 - dy1
+                                        
+                                        # 预测下一位置
+                                        predicted_x = p3[0] + dx2 + ddx * self.prediction_coefficient
+                                        predicted_y = p3[1] + dy2 + ddy * self.prediction_coefficient
+                                elif len(self.position_history) >= 2:
+                                    # 两帧预测：使用速度信息
+                                    p1, p2 = list(self.position_history)[-2:]
+                                    dx = p2[0] - p1[0]
+                                    dy = p2[1] - p1[1]
+                                    predicted_x = p2[0] + dx * self.prediction_coefficient
+                                    predicted_y = p2[1] + dy * self.prediction_coefficient
+                                else:
+                                    # 不足两帧，直接使用当前位置
+                                    predicted_x, predicted_y = current_x, current_y
+                                
+                                # 边界检查
+                                predicted_x = max(0.0, min(1.0, predicted_x))
+                                predicted_y = max(0.0, min(1.0, predicted_y))
+                                
+                                # 更新缓存
+                                self.last_result_cache = (predicted_x, predicted_y)
+                                self.cache_timestamp = current_timestamp
+                            
+                            # 执行鼠标移动
+                            try:
+                                screen_x = int(predicted_x * self.mouse_controller.screen_width)
+                                screen_y = int(predicted_y * self.mouse_controller.screen_height)
+                                screen_x = max(0, min(self.mouse_controller.screen_width, screen_x))
+                                screen_y = max(0, min(self.mouse_controller.screen_height, screen_y))
+                                
+                                self.mouse_controller.mouse.position = (screen_x, screen_y)
+                                
+                                if self.debug_mode:
+                                    print(f"[300FPS] 极致预测移动: ({predicted_x:.3f}, {predicted_y:.3f}) → ({screen_x}, {screen_y})")
+                                    
+                            except Exception as e:
+                                if self.debug_mode:
+                                    print(f"[300FPS ERROR] 鼠标移动出错: {e}")
+                        elif latest_gesture != "鼠标移动":
+                            # 其他手势使用标准处理
+                            try:
+                                hand_center = self.hand_detector.gesture_recognizer.get_hand_center()
+                                self.mouse_controller.handle_gesture(latest_gesture, hand_center)
+                            except Exception as e:
+                                if self.debug_mode:
+                                    print(f"[300FPS ERROR] 手势执行出错: {e}")
                 
-                # 精确的帧率控制
-                loop_end_time = time.time()
-                processing_time = loop_end_time - loop_start_time
-                sleep_time = max(0, frame_interval - processing_time)
-                if sleep_time > 0:
-                    time.sleep(sleep_time)
+                # 更新帧时间
+                last_frame_time = time.perf_counter()
+                
+                # 性能监控（每300帧输出一次）
+                if hasattr(self, '_perf_counter'):
+                    self._perf_counter += 1
+                    if self._perf_counter % 300 == 0 and self.debug_mode:
+                        actual_fps = 300 / (current_time - getattr(self, '_last_perf_time', current_time))
+                        print(f"[300FPS PERF] 实际FPS: {actual_fps:.1f}")
+                        self._last_perf_time = current_time
+                else:
+                    self._perf_counter = 1
+                    self._last_perf_time = current_time
                 
             except Exception as e:
-                self.logger.error(f"识别循环出错: {e}")
+                self.logger.error(f"300FPS识别循环出错: {e}")
                 if self.debug_mode:
-                    print(f"[ERROR] 识别循环异常: {e}")
+                    print(f"[300FPS ERROR] 识别循环异常: {e}")
                     import traceback
                     traceback.print_exc()
-                time.sleep(0.01)  # 出错时短暂延迟
+                time.sleep(0.0005)  # 0.5ms错误延迟
     
     def _safe_update_preview(self, frame, gesture, hand_landmarks):
         """安全的预览更新方法"""
