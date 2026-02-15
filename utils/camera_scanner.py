@@ -4,9 +4,7 @@ import cv2
 from typing import List, Tuple, Dict
 import platform
 
-
 class CameraScanner:    
-    # 常见分辨率预设
     COMMON_RESOLUTIONS = {
         "720p": (1280, 720),
         "1080p (FHD)": (1920, 1080),
@@ -17,7 +15,6 @@ class CameraScanner:
         "SXGA": (1280, 1024),
         "UXGA": (1600, 1200)
     }
-    
     def __init__(self):
         self.available_cameras: List[Tuple[int, str]] = []
         self.system = platform.system().lower()

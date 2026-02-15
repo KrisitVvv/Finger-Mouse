@@ -1,21 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-程序配置设置类
-管理所有可配置的参数和默认值
-"""
-
 import tkinter as tk
 from typing import Dict, Any, Optional
 
-
 class Settings:
-    """程序配置设置管理类"""
     
     def __init__(self, root: Optional[tk.Tk] = None):
         self.root = root
         
-        # 延迟初始化TK变量
         self._tk_vars_initialized = False
         self._cached_values = {
             'detection_confidence': 0.7,
@@ -29,11 +21,10 @@ class Settings:
             'camera_height': 480,
             'smoothing_factor': 0.3,
             'scroll_sensitivity': 1.0,
-            'camera_index': 0,  # 摄像头索引
-            'resolution_preset': '1080p (Full HD)'  # 分辨率预设
+            'camera_index': 0,
+            'resolution_preset': '1080p (Full HD)'
         }
         
-        # TK变量将在initialize_tk_vars中创建
         self.detection_confidence: Optional[tk.DoubleVar] = None
         self.tracking_confidence: Optional[tk.DoubleVar] = None
         self.pinching_threshold: Optional[tk.DoubleVar] = None
@@ -49,13 +40,10 @@ class Settings:
         self.resolution_preset: Optional[tk.StringVar] = None  # 分辨率预设
     
     def initialize_tk_vars(self, root: tk.Tk):
-        """初始化TK变量"""
         if self._tk_vars_initialized:
             return
             
         self.root = root
-        
-        # 创建TK变量
         self.detection_confidence = tk.DoubleVar(value=self._cached_values['detection_confidence'])
         self.tracking_confidence = tk.DoubleVar(value=self._cached_values['tracking_confidence'])
         self.pinching_threshold = tk.DoubleVar(value=self._cached_values['pinching_threshold'])
@@ -73,7 +61,6 @@ class Settings:
         self._tk_vars_initialized = True
     
     def get_all_values(self) -> Dict[str, Any]:
-        """获取所有配置值"""
         if self._tk_vars_initialized:
             return {
                 'detection_confidence': self.detection_confidence.get(),
@@ -94,13 +81,9 @@ class Settings:
             return self._cached_values.copy()
     
     def set_all_values(self, config_dict: Dict[str, Any]):
-        """设置所有配置值"""
-        # 更新缓存值
         for key, value in config_dict.items():
             if key in self._cached_values:
                 self._cached_values[key] = value
-        
-        # 如果TK变量已初始化，也更新它们
         if self._tk_vars_initialized:
             mappings = {
                 'detection_confidence': self.detection_confidence,

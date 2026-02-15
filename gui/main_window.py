@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-主窗口类
-负责整个GUI界面的构建和管理，支持食指中指控制功能
-"""
-
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -22,62 +17,40 @@ from .controls_panel import ControlsPanel
 from .preview_panel import PreviewPanel
 
 
-class MainWindow:
-    """主窗口类"""
-    
+class MainWindow:    
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("Windows 手势识别鼠标控制器")
+        self.root.title("FingerMouse")
         self.root.geometry("1200x700")
         self.root.resizable(True, True)
-        
-        # 初始化核心组件
         self.logger = setup_logger()
-        # 添加调试模式开关（默认关闭以提高性能）
+        # debug mode switch
         self.debug_mode = False
-        
-        # 初始化配置管理器
+        self.current_gesture = "无"
+        self.previous_gesture = "无"
+        self.gesture_change_time = 0
+        self.gesture_stable_time = 0.1
+        self.last_gesture_execution = {}
         self.config_manager = ConfigManager()
-        # 使用根窗口初始化配置管理器
         self.config_manager.initialize_with_root(root)
         self.hand_detector = HandDetector()
         self.mouse_controller = MouseController()
         self.keyboard_listener = KeyboardListener(self._toggle_recognition)
-        
-        # 状态变量
         self.is_running = False
         self.mouse_control_enabled = False
         self.is_paused = False
         self.recognize_thread: Optional[threading.Thread] = None
         self.current_gesture = "无"
-        
-        # 加载配置
         self.config_manager.load_config()
-        
-        # 构建GUI界面
         self._build_gui()
-        
-        # 绑定窗口关闭事件
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
-        
-        # 启动键盘监听
         self.keyboard_listener.start()
-        
-        # 初始化分辨率显示
         self._update_resolution_display()
-        
-        self.logger.info("主窗口初始化完成")
-    
+        self.logger.info("Main Window Initialized.")
     def _build_gui(self):
-        """构建GUI界面"""
-        # 创建菜单栏
         self._create_menu()
-        
-        # 主框架
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # 左侧控制面板
         self.controls_panel = ControlsPanel(
             main_frame, 
             self.config_manager,
@@ -87,42 +60,28 @@ class MainWindow:
             self._toggle_mouse_control,
             self._update_detector
         )
-        
-        # 右侧预览和状态区域
         right_frame = ttk.Frame(main_frame)
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
-        
-        # 预览面板
         self.preview_panel = PreviewPanel(right_frame, self._update_gesture_display)
-        
-        # 状态栏
         self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=2)
     
     def _create_menu(self):
-        """创建菜单栏"""
         menubar = tk.Menu(self.root)
         self.root.config(menu=menubar)
-        
-        # 文件菜单
         file_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="文件", menu=file_menu)
         file_menu.add_command(label="保存配置", command=self._save_config)
         file_menu.add_command(label="加载配置", command=self._load_config_dialog)
         file_menu.add_separator()
         file_menu.add_command(label="退出", command=self._on_close)
-        
-        # 设置菜单
         settings_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="设置", menu=settings_menu)
         settings_menu.add_command(label="手势识别阈值", command=self._show_gesture_thresholds_dialog)
-        
-        # 帮助菜单
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="帮助", menu=help_menu)
         help_menu.add_command(label="使用说明", command=self._show_help)
         help_menu.add_command(label="关于", command=self._show_about)
-    
     def _show_gesture_thresholds_dialog(self):
         """显示手势识别阈值设置对话框"""
         dialog = tk.Toplevel(self.root)
@@ -130,14 +89,8 @@ class MainWindow:
         dialog.geometry("400x400")
         dialog.transient(self.root)
         dialog.grab_set()
-        
-        # 获取当前阈值
         current_thresholds = self.hand_detector.gesture_recognizer.get_thresholds()
-        
-        # 创建设置界面
         ttk.Label(dialog, text="调整手势识别的敏感度阈值:", font=("Arial", 12)).pack(pady=10)
-        
-        # 精确触碰阈值
         pinch_frame = ttk.Frame(dialog)
         pinch_frame.pack(fill=tk.X, padx=20, pady=5)
         ttk.Label(pinch_frame, text="精确触碰阈值:").pack(side=tk.LEFT)
@@ -146,12 +99,9 @@ class MainWindow:
         pinch_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
         pinch_label = ttk.Label(pinch_frame, text=f"{pinch_var.get():.3f}")
         pinch_label.pack(side=tk.LEFT)
-        
         def update_pinch_label(val):
             pinch_label.config(text=f"{float(val):.3f}")
         pinch_scale.configure(command=update_pinch_label)
-        
-        # 点击接触阈值
         click_frame = ttk.Frame(dialog)
         click_frame.pack(fill=tk.X, padx=20, pady=5)
         ttk.Label(click_frame, text="点击接触阈值:").pack(side=tk.LEFT)
@@ -160,12 +110,9 @@ class MainWindow:
         click_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
         click_label = ttk.Label(click_frame, text=f"{click_var.get():.3f}")
         click_label.pack(side=tk.LEFT)
-        
         def update_click_label(val):
             click_label.config(text=f"{float(val):.3f}")
         click_scale.configure(command=update_click_label)
-        
-        # 手指靠近阈值
         proximity_frame = ttk.Frame(dialog)
         proximity_frame.pack(fill=tk.X, padx=20, pady=5)
         ttk.Label(proximity_frame, text="手指靠近阈值:").pack(side=tk.LEFT)
@@ -174,12 +121,10 @@ class MainWindow:
         proximity_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
         proximity_label = ttk.Label(proximity_frame, text=f"{proximity_var.get():.3f}")
         proximity_label.pack(side=tk.LEFT)
-        
+
         def update_proximity_label(val):
             proximity_label.config(text=f"{float(val):.3f}")
         proximity_scale.configure(command=update_proximity_label)
-        
-        # 握拳阈值
         fist_frame = ttk.Frame(dialog)
         fist_frame.pack(fill=tk.X, padx=20, pady=5)
         ttk.Label(fist_frame, text="握拳阈值:").pack(side=tk.LEFT)
@@ -188,62 +133,81 @@ class MainWindow:
         fist_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
         fist_label = ttk.Label(fist_frame, text=f"{fist_var.get():.3f}")
         fist_label.pack(side=tk.LEFT)
-        
+
         def update_fist_label(val):
             fist_label.config(text=f"{float(val):.3f}")
         fist_scale.configure(command=update_fist_label)
+        wheel_up_frame = ttk.Frame(dialog)
+        wheel_up_frame.pack(fill=tk.X, padx=20, pady=5)
+        ttk.Label(wheel_up_frame, text="上滚轮阈值:").pack(side=tk.LEFT)
+        wheel_up_var = tk.DoubleVar(value=current_thresholds['wheel_up_threshold'])
+        wheel_up_scale = ttk.Scale(wheel_up_frame, from_=0.03, to=0.15, variable=wheel_up_var, orient=tk.HORIZONTAL)
+        wheel_up_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
+        wheel_up_label = ttk.Label(wheel_up_frame, text=f"{wheel_up_var.get():.3f}")
+        wheel_up_label.pack(side=tk.LEFT)
         
-        # 按钮框架
+        def update_wheel_up_label(val):
+            wheel_up_label.config(text=f"{float(val):.3f}")
+        wheel_up_scale.configure(command=update_wheel_up_label)
+        wheel_down_frame = ttk.Frame(dialog)
+        wheel_down_frame.pack(fill=tk.X, padx=20, pady=5)
+        ttk.Label(wheel_down_frame, text="下滚轮阈值:").pack(side=tk.LEFT)
+        wheel_down_var = tk.DoubleVar(value=current_thresholds['wheel_down_threshold'])
+        wheel_down_scale = ttk.Scale(wheel_down_frame, from_=0.03, to=0.15, variable=wheel_down_var, orient=tk.HORIZONTAL)
+        wheel_down_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
+        wheel_down_label = ttk.Label(wheel_down_frame, text=f"{wheel_down_var.get():.3f}")
+        wheel_down_label.pack(side=tk.LEFT)
+
+        def update_wheel_down_label(val):
+            wheel_down_label.config(text=f"{float(val):.3f}")
+        wheel_down_scale.configure(command=update_wheel_down_label)
         button_frame = ttk.Frame(dialog)
         button_frame.pack(pady=20)
         
         def apply_thresholds():
-            """应用阈值设置"""
             self.hand_detector.update_gesture_thresholds(
                 pinch=pinch_var.get(),
                 fist=fist_var.get(),
                 click_contact=click_var.get(),
-                finger_proximity=proximity_var.get()
+                finger_proximity=proximity_var.get(),
+                wheel_up=wheel_up_var.get(),
+                wheel_down=wheel_down_var.get()
             )
             messagebox.showinfo("成功", "手势识别阈值已更新")
             dialog.destroy()
-        
         def reset_thresholds():
-            """重置为默认值"""
-            pinch_var.set(0.06)
-            click_var.set(0.05)
-            proximity_var.set(0.04)
-            fist_var.set(0.12)
-            update_pinch_label(0.06)
-            update_click_label(0.05)
-            update_proximity_label(0.04)
-            update_fist_label(0.12)
+            pinch_var.set(0.09)
+            click_var.set(0.07)
+            proximity_var.set(0.06)
+            fist_var.set(0.15)
+            wheel_up_var.set(0.08)
+            wheel_down_var.set(0.08)
+            update_pinch_label(0.09)
+            update_click_label(0.07)
+            update_proximity_label(0.06)
+            update_fist_label(0.15)
+            update_wheel_up_label(0.08)
+            update_wheel_down_label(0.08)
         
         ttk.Button(button_frame, text="应用", command=apply_thresholds).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="重置", command=reset_thresholds).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="取消", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
     
     def _start_recognition(self):
-        """启动手势识别"""
         try:
             if self.hand_detector.initialize(self.config_manager):
                 self.is_running = True
                 self.is_paused = False
                 self.controls_panel.update_control_states(running=True)
                 self._update_status("运行中", "green")
-                
-                # 更新鼠标控制器的屏幕尺寸
                 screen_width = self.config_manager.settings.screen_width.get()
                 screen_height = self.config_manager.settings.screen_height.get()
                 self.mouse_controller.update_screen_size(screen_width, screen_height)
-                
-                # 启动识别线程
                 self.recognize_thread = threading.Thread(
                     target=self._recognition_loop, 
                     daemon=True
                 )
                 self.recognize_thread.start()
-                
                 self.logger.info("手势识别已启动")
             else:
                 messagebox.showerror("错误", "无法初始化手部检测器")
@@ -252,7 +216,6 @@ class MainWindow:
             messagebox.showerror("错误", f"启动识别失败: {e}")
     
     def _stop_recognition(self):
-        """停止手势识别"""
         self.is_running = False
         self.is_paused = False
         self.controls_panel.update_control_states(running=False)
@@ -262,14 +225,12 @@ class MainWindow:
         self.logger.info("手势识别已停止")
     
     def _toggle_recognition(self):
-        """切换识别状态"""
         if self.is_running:
             self._stop_recognition()
         else:
             self._start_recognition()
     
     def _toggle_pause(self):
-        """切换暂停状态"""
         self.is_paused = not self.is_paused
         if self.is_paused:
             self._update_status("已暂停", "orange")
@@ -279,42 +240,32 @@ class MainWindow:
             self.logger.info("识别已恢复")
     
     def _toggle_mouse_control(self):
-        """切换鼠标控制状态"""
         self.mouse_control_enabled = not self.mouse_control_enabled
         if self.mouse_control_enabled:
             self.logger.info("鼠标控制已开启")
-            # 更新界面显示
             self.controls_panel.update_mouse_status(True)
         else:
             self.mouse_controller.release_all_buttons()
             self.logger.info("鼠标控制已关闭")
-            # 更新界面显示
             self.controls_panel.update_mouse_status(False)
     
     def _create_advanced_filter(self):
-        """创建高级平滑滤波器"""
-        # 使用加权移动平均滤波器
         return {
             'positions': deque(maxlen=6),
-            'weights': [0.3, 0.25, 0.2, 0.15, 0.07, 0.03]  # 指数衰减权重
+            'weights': [0.3, 0.25, 0.2, 0.15, 0.07, 0.03]
         }
     
     def _create_velocity_filter(self):
-        """创建速度滤波器"""
         return {
             'velocities': deque(maxlen=8),
             'accelerations': deque(maxlen=6)
         }
     
     def _assess_stability(self, x: float, y: float) -> bool:
-        """评估当前手势的稳定性"""
-        # 添加当前位置到稳定性窗口
         self.stability_window.append((x, y, time.perf_counter()))
         
         if len(self.stability_window) < self.min_stable_frames:
             return False
-        
-        # 计算最近几帧的位移变化
         recent_positions = list(self.stability_window)[-self.min_stable_frames:]
         displacements = []
         
@@ -323,38 +274,26 @@ class MainWindow:
             dy = recent_positions[i][1] - recent_positions[i-1][1]
             displacement = math.sqrt(dx*dx + dy*dy)
             displacements.append(displacement)
-        
-        # 如果平均位移小于抖动阈值，则认为稳定
         avg_displacement = sum(displacements) / len(displacements)
         return avg_displacement < self.jitter_threshold
-    
     def _predict_position(self, current_x: float, current_y: float, timestamp: float) -> Tuple[float, float]:
-        """改进的预测算法"""
         self.position_history.append((current_x, current_y, timestamp))
-        
-        # 保持历史记录大小
         if len(self.position_history) > self.history_size:
             self.position_history.pop(0)
         
         if len(self.position_history) >= 3:
             if len(self.position_history) >= 6:
-                # 六阶预测：使用更多历史信息
                 positions = list(self.position_history)[-6:]
-                # 计算多阶差分
                 velocities = []
                 for i in range(1, len(positions)):
                     dx = positions[i][0] - positions[i-1][0]
                     dy = positions[i][1] - positions[i-1][1]
                     velocities.append((dx, dy))
-                
-                # 加速度
                 accelerations = []
                 for i in range(1, len(velocities)):
                     ddx = velocities[i][0] - velocities[i-1][0]
                     ddy = velocities[i][1] - velocities[i-1][1]
                     accelerations.append((ddx, ddy))
-                
-                # 预测（保守策略）
                 last_pos = positions[-1]
                 last_vel = velocities[-1]
                 last_acc = accelerations[-1] if accelerations else (0, 0)
@@ -362,7 +301,7 @@ class MainWindow:
                 predicted_x = last_pos[0] + last_vel[0] + last_acc[0] * self.prediction_coefficient * 0.7
                 predicted_y = last_pos[1] + last_vel[1] + last_acc[1] * self.prediction_coefficient * 0.7
             else:
-                # 三阶预测
+                # three points
                 p1, p2, p3 = list(self.position_history)[-3:]
                 dx1 = p2[0] - p1[0]
                 dy1 = p2[1] - p1[1]
@@ -373,23 +312,16 @@ class MainWindow:
                 predicted_x = p3[0] + dx2 + ddx * self.prediction_coefficient * 0.8
                 predicted_y = p3[1] + dy2 + ddy * self.prediction_coefficient * 0.8
         else:
-            # 简单预测
             predicted_x, predicted_y = current_x, current_y
         
         return predicted_x, predicted_y
     
     def _apply_advanced_smoothing(self, x: float, y: float, timestamp: float) -> Tuple[float, float]:
-        """应用高级平滑滤波"""
-        # 更新滤波器
         self.smoothing_filter['positions'].append((x, y, timestamp))
-        
         if len(self.smoothing_filter['positions']) >= 3:
-            # 加权移动平均
             weighted_x = 0
             weighted_y = 0
             positions = list(self.smoothing_filter['positions'])
-            
-            # 只使用可用的权重
             weights_to_use = self.smoothing_filter['weights'][:len(positions)]
             weight_sum = sum(weights_to_use)
             
@@ -398,177 +330,126 @@ class MainWindow:
                     weight = weights_to_use[i] / weight_sum
                     weighted_x += pos_x * weight
                     weighted_y += pos_y * weight
-            
             return weighted_x, weighted_y
         else:
             return x, y
-    
     def _apply_conservative_smoothing(self, x: float, y: float) -> Tuple[float, float]:
         """应用保守平滑策略（用于不稳定情况）"""
         if self.last_result_cache:
             last_x, last_y = self.last_result_cache
-            # 非常保守的平滑：只允许小幅度变化
-            max_change = 0.02  # 最大2%的变化
+            max_change = 0.02  # max change allowed 2%
             dx = max(-max_change, min(max_change, x - last_x))
             dy = max(-max_change, min(max_change, y - last_y))
             return last_x + dx, last_y + dy
         else:
             return x, y
-    
     def _recognition_loop(self):
-        """手势识别主循环 - 防抖动优化版（300FPS + 高级平滑滤波）"""
-        # 300FPS极致优化参数
-        target_fps = 300  # 提升到300FPS
-        frame_interval = 1.0 / target_fps  # 约3.33ms
-        last_frame_time = time.perf_counter()  # 纳秒级精确计时
-        
-        # 防抖动优化参数
-        self.position_history = []  # 位置历史记录
-        self.history_size = 8  # 增大历史窗口提高稳定性
-        self.prediction_coefficient = 0.15  # 降低预测系数增加稳定性
-        
-        # 高级平滑滤波器
-        self.smoothing_filter = self._create_advanced_filter()
-        self.velocity_filter = self._create_velocity_filter()
-        
-        # 智能缓存机制
-        self.last_result_cache = None
-        self.cache_timestamp = 0
-        self.cache_duration = 0.005  # 5ms缓存窗口（适度延长）
-        
-        # 抖动抑制参数
-        self.jitter_threshold = 0.005  # 抖动检测阈值
-        self.stability_window = deque(maxlen=10)  # 稳定性检测窗口
-        self.min_stable_frames = 3  # 最小稳定帧数
-        
-        # 帧缓冲机制优化
-        frame_queue = []
-        max_queue_size = 2  # 适度增加队列大小
-        
+        target_fps = 60
+        frame_interval = 1.0 / target_fps
+        last_frame_time = time.time() 
         while self.is_running:
-            current_time = time.perf_counter()
-            
+            current_time = time.time()
             if self.is_paused:
                 time.sleep(frame_interval)
                 continue
-                
             try:
-                # 精确的帧率控制
-                elapsed_time = current_time - last_frame_time
-                if elapsed_time < frame_interval:
-                    sleep_time = frame_interval - elapsed_time
-                    if sleep_time > 0:
-                        time.sleep(sleep_time * 0.85)  # 适度睡眠
-                
-                # 获取摄像头帧并处理
+                elapsed = current_time - last_frame_time
+                if elapsed < frame_interval:
+                    time.sleep(frame_interval - elapsed)
+                last_frame_time = time.time()
                 frame, gesture, hand_landmarks = self.hand_detector.process_frame()
                 if frame is not None:
-                    # 帧缓冲管理
-                    frame_queue.append((frame, gesture, hand_landmarks, time.perf_counter()))
-                    if len(frame_queue) > max_queue_size:
-                        frame_queue.pop(0)
-                    
-                    # 处理最新的帧
-                    latest_frame, latest_gesture, latest_landmarks, frame_timestamp = frame_queue[-1]
-                    
-                    # 异步更新预览显示
-                    self.root.after(0, lambda f=latest_frame.copy(), g=latest_gesture, l=latest_landmarks: 
-                                  self._safe_update_preview(f, g, l))
-                    
-                    # 手势处理优化
-                    if latest_gesture != self.current_gesture:
-                        self.current_gesture = latest_gesture
-                        landmark_count = len(latest_landmarks.landmark) if latest_landmarks else 0
-                        self.root.after(0, lambda g=latest_gesture, c=landmark_count: 
-                                      self.preview_panel.update_gesture_display(g, c))
-                    
-                    # 防抖动鼠标控制处理
-                    if self.mouse_control_enabled and latest_gesture == "鼠标移动":
-                        hand_center = self.hand_detector.gesture_recognizer.get_hand_center()
-                        if hand_center:
-                            # 检查缓存
-                            current_timestamp = time.perf_counter()
-                            if (self.last_result_cache is not None and 
-                                current_time - self.cache_timestamp < self.cache_duration):
-                                # 使用缓存结果
-                                smoothed_x, smoothed_y = self.last_result_cache
-                            else:
-                                # 获取原始坐标
-                                current_x, current_y = hand_center
-                                
-                                # 抖动检测和稳定性评估
-                                is_stable = self._assess_stability(current_x, current_y)
-                                
-                                if is_stable:
-                                    # 稳定时使用预测算法
-                                    predicted_x, predicted_y = self._predict_position(current_x, current_y, current_timestamp)
-                                    
-                                    # 高级平滑滤波
-                                    smoothed_x, smoothed_y = self._apply_advanced_smoothing(
-                                        predicted_x, predicted_y, current_timestamp
-                                    )
-                                else:
-                                    # 不稳定时使用保守策略
-                                    smoothed_x, smoothed_y = self._apply_conservative_smoothing(
-                                        current_x, current_y
-                                    )
-                                
-                                # 边界检查
-                                smoothed_x = max(0.0, min(1.0, smoothed_x))
-                                smoothed_y = max(0.0, min(1.0, smoothed_y))
-                                
-                                # 更新缓存
-                                self.last_result_cache = (smoothed_x, smoothed_y)
-                                self.cache_timestamp = current_timestamp
-                            
-                            # 执行鼠标移动
-                            try:
-                                screen_x = int(smoothed_x * self.mouse_controller.screen_width)
-                                screen_y = int(smoothed_y * self.mouse_controller.screen_height)
-                                screen_x = max(0, min(self.mouse_controller.screen_width, screen_x))
-                                screen_y = max(0, min(self.mouse_controller.screen_height, screen_y))
-                                
-                                self.mouse_controller.mouse.position = (screen_x, screen_y)
-                                
-                                if self.debug_mode:
-                                    print(f"[防抖动] 移动: ({smoothed_x:.3f}, {smoothed_y:.3f}) → ({screen_x}, {screen_y})")
-                                    
-                            except Exception as e:
-                                if self.debug_mode:
-                                    print(f"[防抖动 ERROR] 鼠标移动出错: {e}")
-                        elif latest_gesture != "鼠标移动":
-                            # 其他手势使用标准处理
-                            try:
-                                hand_center = self.hand_detector.gesture_recognizer.get_hand_center()
-                                self.mouse_controller.handle_gesture(latest_gesture, hand_center)
-                            except Exception as e:
-                                if self.debug_mode:
-                                    print(f"[防抖动 ERROR] 手势执行出错: {e}")
-                
-                # 更新帧时间
-                last_frame_time = time.perf_counter()
-                
-                # 性能监控
-                if hasattr(self, '_perf_counter'):
-                    self._perf_counter += 1
-                    if self._perf_counter % 300 == 0 and self.debug_mode:
-                        actual_fps = 300 / (current_time - getattr(self, '_last_perf_time', current_time))
-                        print(f"[防抖动 PERF] 实际FPS: {actual_fps:.1f}")
-                        self._last_perf_time = current_time
-                else:
-                    self._perf_counter = 1
-                    self._last_perf_time = current_time
-                
+                    self.preview_panel.update_preview(frame, hand_landmarks)
+                    if self._should_process_gesture(gesture):
+                        self._process_gesture_change(gesture, hand_landmarks)
             except Exception as e:
-                self.logger.error(f"防抖动识别循环出错: {e}")
+                self.logger.error(f"识别循环出错: {e}")
                 if self.debug_mode:
-                    print(f"[防抖动 ERROR] 识别循环异常: {e}")
-                    import traceback
-                    traceback.print_exc()
-                time.sleep(0.001)  # 1ms错误延迟
+                    print(f"[ERROR] 识别循环异常: {e}")
+                time.sleep(0.01)
+    
+    def _should_process_gesture(self, current_gesture):
+        current_time = time.time()
+        if current_gesture != self.current_gesture:
+            self.gesture_change_time = current_time
+            self.current_gesture = current_gesture
+            return True
+        elif (current_time - self.gesture_change_time) >= self.gesture_stable_time:
+            return True
+        return False
+    
+    def _process_gesture_change(self, gesture, hand_landmarks):
+        current_time = time.time()
+        landmark_count = len(hand_landmarks.landmark) if hand_landmarks else 0
+        self.preview_panel.update_gesture_display(gesture, landmark_count)
+        if self.debug_mode:
+            print(f"[GESTURE CHANGE] {self.previous_gesture} → {gesture}")
+        if self.mouse_control_enabled:
+            '''colldown time control'''
+            cooldown_times = {
+                "鼠标点击": 1.0,
+                "鼠标右键": 1.0,
+                "上滚轮": 1.0,
+                "下滚轮": 1.0,
+                "握拳": 0.5,
+                "鼠标移动": 0.001
+            }
+            
+            cooldown = cooldown_times.get(gesture, 0.1)
+            last_execution = self.last_gesture_execution.get(gesture, 0)
+            if current_time - last_execution >= cooldown:
+                self._execute_gesture_action(gesture, hand_landmarks)
+                self.last_gesture_execution[gesture] = current_time
+            elif self.debug_mode:
+                remaining = cooldown - (current_time - last_execution)
+                print(f"[COOLDOWN] {gesture} 冷却中，剩余 {remaining:.2f}s")
+        self.previous_gesture = gesture
+    def _execute_gesture_action(self, gesture, hand_landmarks):
+        try:
+            if gesture == "鼠标移动":
+                self._handle_mouse_movement(hand_landmarks)
+            elif gesture in ["鼠标点击", "鼠标右键", "上滚轮", "下滚轮"]:
+                self._handle_mouse_action(gesture)
+            elif gesture == "握拳":
+                self._handle_fist_gesture()
+            else:
+                hand_center = self.hand_detector.gesture_recognizer.get_hand_center()
+                self.mouse_controller.handle_gesture(gesture, hand_center)
+                
+            if self.debug_mode:
+                print(f"[EXECUTED] {gesture} 执行完成")
+                
+        except Exception as e:
+            if self.debug_mode:
+                print(f"[ERROR] 执行 {gesture} 失败: {e}")
+    
+    def _handle_mouse_movement(self, hand_landmarks):
+        hand_center = self.hand_detector.gesture_recognizer.get_hand_center()
+        if hand_center:
+            point5_x, point5_y = hand_center
+            screen_width, screen_height = 1920, 1080
+            screen_x = int(point5_x * screen_width)
+            screen_y = int(point5_y * screen_height)
+            screen_x = max(0, min(screen_width, screen_x))
+            screen_y = max(0, min(screen_height, screen_y))
+            self.mouse_controller.mouse.position = (screen_x, screen_y)
+            if self.debug_mode:
+                print(f"[MOUSE MOVE] ({point5_x:.3f}, {point5_y:.3f}) → ({screen_x}, {screen_y})")
+    
+    def _handle_mouse_action(self, gesture):
+        hand_center = self.hand_detector.gesture_recognizer.get_hand_center()
+        try:
+            self.mouse_controller.handle_gesture(gesture, hand_center)
+        except Exception as e:
+            if self.debug_mode:
+                print(f"[MOUSE ACTION ERROR] {gesture}: {e}")
+    
+    def _handle_fist_gesture(self):
+        self._toggle_mouse_control()
+        if self.debug_mode:
+            status = "暂停" if not self.mouse_control_enabled else "恢复"
     
     def _safe_update_preview(self, frame, gesture, hand_landmarks):
-        """安全的预览更新方法"""
         try:
             self.preview_panel.update_preview(frame, hand_landmarks)
         except Exception as e:
@@ -583,23 +464,18 @@ class MainWindow:
         )
     
     def _update_gesture_display(self, gesture: str):
-        """更新手势显示"""
         self.current_gesture = gesture
-        # 这里不再直接调用preview_panel的update_gesture_display，因为已经在识别循环中处理了
     
     def _update_resolution_display(self):
-        """更新分辨率显示"""
         settings = self.config_manager.settings
         width = settings.screen_width.get()
         height = settings.screen_height.get()
         preset = settings.resolution_preset.get()
         
-        # 更新控制面板中的分辨率显示
         if hasattr(self.controls_panel, 'resolution_display'):
             self.controls_panel.resolution_display.config(text=f"{width} x {height}")
     
     def _update_status(self, status: str, color: str):
-        """更新状态显示"""
         self.controls_panel.update_status(status, color)
         mouse_status = "开启" if self.mouse_control_enabled else "关闭"
         pause_status = "暂停" if self.is_paused else "运行"
@@ -608,60 +484,34 @@ class MainWindow:
         )
     
     def _save_config(self):
-        """保存配置"""
         if self.config_manager.save_config():
-            messagebox.showinfo("成功", "配置已保存")
+            messagebox.showinfo("success", "配置已保存")
             self.logger.info("配置已保存")
         else:
-            messagebox.showerror("错误", "保存配置失败")
+            messagebox.showerror("error", "loading config failed")
     
     def _load_config_dialog(self):
-        """加载配置对话框"""
-        # 这里可以添加文件选择对话框
         if self.config_manager.load_config():
-            messagebox.showinfo("成功", "配置已加载")
-            self.logger.info("配置已加载")
-            # 更新界面显示
+            messagebox.showinfo("success", "successfully loaded config")
+            self.logger.info("loading config successfully")
             self.controls_panel.refresh_display()
             self._update_resolution_display()
         else:
-            messagebox.showerror("错误", "加载配置失败")
+            messagebox.showerror("error", "loading config failed")
     
     def _show_help(self):
-        """显示帮助信息（包含新的手腕控制功能）"""
+        """显示帮助信息"""
         help_text = """
 使用说明:
 1. 点击"启动识别"开始手势识别
 2. 点击"开启鼠标控制"启用鼠标模拟
-3. 使用手腕控制鼠标:
+3. 使用手势控制鼠标:
 
-   🖱️ 鼠标移动: 手腕移动控制光标位置
+   🖱️ 鼠标移动: 手掌移动控制光标位置
    💡 鼠标点击: 拇指+食指指尖触碰
-   ⬇️ 下滚轮: 拇指尖触碰食指DIP关节
-   ⬆️ 上滚轮: 拇指尖触碰食指PIP关节
-   ✊ 握拳: 停止鼠标控制并释放按键（最高优先级）
-   🏠 回到桌面: 张开手掌→握拳(过渡手势)
-
-重要特性:
-- 手腕移动即可控制鼠标，无需张开手掌
-- 握拳手势具有最高优先级，立即停止所有鼠标控制
-- 0.5秒后自动恢复控制（防止误操作）
-- 其他手势功能保持不变
-
-4. 可通过参数面板调整识别灵敏度
-5. 支持热键 Ctrl+Alt+G 切换识别状态
-
-新增功能:
-- 🔄 手腕坐标控制: 更自然的手势控制体验
-- ⚡ 握拳急停: 紧急情况下快速停止鼠标控制
-- 🎯 优先级管理: 握拳 > 点击 > 滚轮 > 移动
-- 🛡️ 智能恢复: 自动恢复控制避免长时间禁用
-
-高级功能:
-- 双击手势: 快速两次捏合执行双击
-- 组合手势: 支持复杂的手势序列识别
-- 快捷键映射: 可将手势映射到任意键盘快捷键
-- 动态配置: 运行时可修改手势映射关系
+   ⬇️ 下滚轮: 拇指尖触碰食指PIP关节（节点4和6）
+   ⬆️ 上滚轮: 拇指尖触碰食指MCP关节（节点4和5）
+   ✊ 握拳: 停止鼠标控制并释放按键
 
 技术支持:
 - 分辨率预设: 从下拉菜单中选择常用分辨率
@@ -674,27 +524,22 @@ class MainWindow:
     def _show_about(self):
         """显示关于信息"""
         about_text = """
-手势识别鼠标控制器 v4.1
+FingerMouse Controller
 
 基于 MediaPipe 和 OpenCV 的食指中指控制手势识别系统
 支持智能点击和滚轮控制鼠标操作
 
-作者: AI Assistant
+作者: Zhao Yifan
 开发语言: Python
+GitHub: https://github.com/KrisitVvv/
 
 主要功能:
 - 智能手势识别(点击、滚轮、移动)
-- 鼠标控制(移动、点击、滚轮)
-- 实时预览和参数调节
-- 多摄像头支持和分辨率选择
-- 可调节的手指控制阈值
-- 手部骨架可视化显示
-- 新增食指中指靠近移动机制
+- 鼠标控制(移动)
         """
         messagebox.showinfo("关于", about_text)
     
     def _on_close(self):
-        """窗口关闭处理"""
         try:
             self.logger.info("程序正在关闭...")
             

@@ -1,182 +1,272 @@
-# 手势识别鼠标控制器
+# <p align="center">Finger-Mouse</p>
+Base on Google's MediaPipe and OpenCV,support multiple gesture controls for mouse operation.
+## Usage
+You can use this project to control your mouse with your fingers.The project is used camera input,so you can far away your computer.
 
-基于 MediaPipe 和 OpenCV 的手势识别系统，支持多种手势控制鼠标操作。
+### System architecture design
+#### 1. Modular Design
+- **Detection Layer**: Responsible for detecting and tracking hand key points
+- **Recognition Layer**: Handles the extraction and classification of gesture features
+- **Control Layer**: Executes mouse simulation and system control
+- **Interface Layer**: Provides user interaction and parameter adjustment
+#### 2. Data flow
+```
+Camera input → Image preprocessing → Key point detection → Feature extraction → Gesture recognition → Mouse control → Interface feedback
+```
 
-## 🎯 功能特性
-
-- **多手势识别**：支持捏合、握拳、V字、OK手势等多种手势
-- **鼠标控制**：手势控制鼠标移动、点击、拖拽等操作
-- **实时预览**：显示摄像头画面和手势识别结果
-- **参数调节**：可调节识别灵敏度、阈值等参数
-- **配置保存**：支持配置文件的保存和加载
-- **快捷键支持**：支持 Ctrl+Alt+G 快捷键切换识别状态
-- **分辨率预设**：提供常见分辨率下拉选择（720p, 1080p, 2K, 4K等）
-- **多摄像头支持**：自动扫描并选择可用摄像头设备
-
-## 📁 项目结构
+## Project structure
 
 ```
 FingerMouse/
-├── main.py                 # 程序入口点
-├── requirements.txt        # 依赖包列表
-├── README.md              # 项目说明文档
-├── start.bat              # Windows启动脚本
-├── config/                # 配置管理模块
+├── main.py                 # Program entry point
+├── requirements.txt        # Dependency package list
+├── README.md              # Project Description Document
+├── config/                
 │   ├── __init__.py
-│   ├── settings.py        # 配置参数管理
-│   └── config_manager.py  # 配置文件处理
-├── gui/                   # 图形界面模块
+│   ├── settings.py        
+│   └── config_manager.py
+├── gui/                   
 │   ├── __init__.py
-│   ├── main_window.py     # 主窗口类
-│   ├── controls_panel.py  # 控制面板
-│   └── preview_panel.py   # 预览面板
-├── recognition/           # 手势识别模块
+│   ├── main_window.py     
+│   ├── controls_panel.py  
+│   └── preview_panel.py   
+├── recognition/           
 │   ├── __init__.py
-│   ├── hand_detector.py   # 手部检测器
-│   ├── gesture_recognizer.py # 手势识别器
-│   └── gesture_processor.py # 手势处理器
-├── control/               # 控制模块
+│   ├── hand_detector.py   
+│   ├── gesture_recognizer.py 
+│   └── gesture_processor.py 
+├── control/       
 │   ├── __init__.py
-│   ├── mouse_controller.py # 鼠标控制器
-│   └── keyboard_listener.py # 键盘监听器
-├── utils/                 # 工具模块
-│   ├── __init__.py
-│   ├── logger.py          # 日志工具
-│   ├── camera_manager.py  # 摄像头管理
-│   └── camera_scanner.py  # 摄像头扫描器
-└── tests/                 # 测试脚本
-    ├── test_program.py    # 完整功能测试
-    └── simple_test.py     # 模块化测试
+│   ├── mouse_controller.py
+│   └── keyboard_listener.py
+├── utils/                
+    ├── __init__.py
+    ├── logger.py        
+    ├── camera_manager.py
+    └── camera_scanner.py
 ```
 
-## 🚀 快速开始
+## Running
 
-### 1. 环境准备
+### 1. Environment Setup
 
 ```bash
-# 创建conda环境
 conda create -n finger-mouse python=3.8
 conda activate finger-mouse
-
-# 安装依赖
 pip install -r requirements.txt
 ```
 
-### 2. 运行程序
+### 2. Run Project
 
 ```bash
 python main.py
 ```
 
-### 3. 使用说明
+### 3. How to use
 
-1. 点击"启动识别"开始手势识别
-2. 点击"开启鼠标控制"启用鼠标模拟
-3. 使用不同手势控制鼠标操作：
-   - **捏合手势**：移动鼠标
-   - **握拳**：鼠标左键按下
-   - **张开手掌**：鼠标左键释放
-   - **V字手势**：鼠标右键点击
-   - **OK手势**：暂停/恢复识别
+1. Click "Start Recognition" to start gesture recognition.
+2. Click "Enable Mouse Control" to activate mouse simulation.
+3. Use different gestures to control mouse operations:
+- **Touch the thumb and index finger together**: Left mouse button
+- **Touch the thumb and middle finger together**: Right mouse button
+- **Touch the bottom of the thumb and index finger together**: Scroll up
+- **Touch the thumb on the base of the index finger**: Scroll down
 
-## 🆕 新增功能
+## Contribution Guidelines 
+Welcome to submit Issues and Pull Requests to improve the project!
 
-### 分辨率预设选择
-- 提供常见分辨率下拉选择：720p, 1080p (Full HD), 1440p (2K), 2160p (4K)等
-- 自动更新屏幕宽度和高度设置
-- 实时显示当前选择的分辨率
 
-### 摄像头管理
-- **自动扫描**：点击"扫描摄像头"按钮自动检测系统中所有可用摄像头
-- **设备选择**：从下拉列表中选择要使用的摄像头设备
-- **分辨率设置**：可为选中的摄像头设置合适的分辨率（640x480, 800x600, 1280x720, 1920x1080）
-- **状态显示**：显示摄像头扫描状态和找到的设备数量
+## Thanks
 
-## ⚙️ 配置参数
+- [MediaPipe](https://github.com/google/mediapipe)
+- [OpenCV](https://opencv.org/)
+- [pynput](https://pynput.readthedocs.io/)
 
-### 识别参数
-- **检测置信度**：手部检测的置信度阈值 (0.5-0.9)
-- **跟踪置信度**：手部跟踪的置信度阈值 (0.5-0.9)
-- **捏合阈值**：判断捏合手势的距离阈值 (0.01-0.1)
-- **握拳阈值**：判断握拳手势的距离阈值 (0.05-0.15)
+## Core algorithm
 
-### 控制参数
-- **平滑因子**：鼠标移动的平滑程度 (0.1-0.8)
-- **滚动灵敏度**：鼠标滚轮的灵敏度 (0.5-2.0)
-
-### 屏幕参数
-- **目标分辨率**：从预设中选择目标屏幕分辨率
-- **当前设置**：显示实际的像素分辨率数值
-
-### 摄像头参数
-- **摄像头扫描**：自动检测可用摄像头设备
-- **摄像头选择**：从检测到的设备中选择使用哪一个
-- **摄像头分辨率**：设置摄像头采集分辨率
-- **帧率**：设置摄像头采集帧率
-
-## 🧪 测试
-
-### 运行测试
-
-```bash
-# 完整功能测试
-python test_program.py
-
-# 模块化测试
-python simple_test.py
+### Dynamic threshold adjustment algorithm
+```python
+def adaptive_threshold_adjustment(current_value, baseline_threshold, adaptation_rate=0.05):
+    # Calculate the offset
+    offset = current_value - baseline_threshold
+    
+    adjusted_threshold = baseline_threshold + offset * adaptation_rate
+    
+    # Limit the maximum adjustment
+    max_adjustment = baseline_threshold * 0.3  # Max adjustment 30%
+    adjusted_threshold = max(
+        baseline_threshold - max_adjustment,
+        min(baseline_threshold + max_adjustment, adjusted_threshold)
+    )
+    
+    return adjusted_threshold
+```
+### Multi-frame voting mechanism
+```python
+def multi_frame_voting(gesture_history, voting_window=8):
+    if len(gesture_history) < voting_window:
+        return gesture_history[-1] if gesture_history else None
+    
+    # Count the frequency of each gesture's appearance
+    vote_count = {}
+    recent_gestures = gesture_history[-voting_window:]
+    
+    for gesture in recent_gestures:
+        vote_count[gesture] = vote_count.get(gesture, 0) + 1
+    
+    most_voted_gesture = max(vote_count.items(), key=lambda x: x[1])[0]
+    
+    # Limit the maximum uncertainty
+    min_votes_required = voting_window * 0.6
+    if vote_count[most_voted_gesture] >= min_votes_required:
+        return most_voted_gesture
+    else:
+        return None
 ```
 
-### 测试内容
-- 依赖包检查
-- 模块导入验证
-- 核心功能测试
-- 摄像头访问测试
-- 新增功能验证
+### Mouse control
 
-## 📝 日志记录
+#### 1. Coordinate mapping
+- **Normalization**：Let the standardized coordinates (-1,1) of MediaPipe are converted to pixel coordinates.
+- **Screen Adapter**：Adaptive mapping supporting screens of different resolutions
+- **Boundary Treatment**：Prevent the mouse from going beyond the screen boundaries
+- **Y-axis Inversion**：Correct the differences between the camera coordinate system and the screen coordinate system
 
-程序会自动创建日志文件，记录程序运行状态和错误信息：
-- 日志文件名格式：`hand_mouse_YYYYMMDD.log`
-- 日志级别：INFO、WARNING、ERROR
-- 同时输出到文件和控制台
+#### 2. Motion smoothing algorithm
+- **Exponential Moving Average**: Utilizes the EMA algorithm to smooth the mouse movement trajectory
+- **Predictive Interpolation**: Predicts the next position based on historical movement trends
+- **Acceleration Compensation**: Dynamically adjusts the mouse sensitivity according to the speed of hand movement
+- **Dead Zone Filtering**: Ignores minor hand tremors to improve control accuracy
 
-## 🔧 故障排除
+#### 3. Anti-Auto-Fire Control Mechanism  
+- **Cooldown Management**: Sets independent cooldown periods for each gesture.
+- **State Locking Mechanism**: Prevents repeated triggering of the same gesture.
+- **Gesture Change Detection**: Executes actions only upon detection of a valid state change.
+- **Multi-Layer Protection**: Combines timestamp and state flagging for dual protection.
+#### 4. High Frame Rate Optimization
+- **Frame Rate Adaptation**: Dynamically adjusts the processing frame rate based on system performance.
+- **Batch Processing Optimization**: Employs batch processing at high frame rates to reduce system calls.
+- **Caching Mechanism**: Caches recent computation results to avoid redundant calculations.
+- **Asynchronous Updates**: Uses asynchronous methods to update the GUI for maintaining smoothness.
 
-### 常见问题
+### FPS Optimization
+```python
+def calculate_optimal_fps(process_time_ms, safety_margin=0.8):
+    if process_time_ms <= 0:
+        return 30
+    
+    theoretical_max_fps = 1000.0 / process_time_ms
+    optimal_fps = int(theoretical_max_fps * safety_margin)
+    
+    return max(15, min(120, optimal_fps))
+```
+### Cache hit rate
+```python
+def cache_performance_model(cache_size, access_pattern_skewness=0.8):
+    hit_rate = 1.0 - (1.0 / (cache_size ** access_pattern_skewness))
+    return hit_rate
+```
 
-1. **无法打开摄像头**
-   - 检查摄像头是否被其他程序占用
-   - 确认摄像头驱动正常
-   - 使用"扫描摄像头"功能检测可用设备
+### Delayed Statistics
+```python
+class LatencyMonitor:
+    def __init__(self, window_size=100):
+        self.latencies = deque(maxlen=window_size)
+        self.timestamps = deque(maxlen=window_size)
+    
+    def add_measurement(self, latency_ms):
+        self.latencies.append(latency_ms)
+        self.timestamps.append(time.time())
+    
+    def get_statistics(self):
+        if not self.latencies:
+            return None
+        latencies_list = list(self.latencies)
+        stats = {
+            'mean': sum(latencies_list) / len(latencies_list),
+            'median': sorted(latencies_list)[len(latencies_list)//2],
+            'min': min(latencies_list),
+            'max': max(latencies_list),
+            'std_dev': (sum((x - sum(latencies_list)/len(latencies_list))**2 
+                          for x in latencies_list) / len(latencies_list))**0.5,
+            'percentile_95': sorted(latencies_list)[int(len(latencies_list) * 0.95)],
+            'percentile_99': sorted(latencies_list)[int(len(latencies_list) * 0.99)]
+        }
+        
+        return stats
+```
+### Shaking
+```python
+def calculate_jitter(latency_measurements):
+    if len(latency_measurements) < 2:
+        return 0
+    
+    differences = [abs(latency_measurements[i] - latency_measurements[i-1]) 
+                   for i in range(1, len(latency_measurements))]
+    
+    jitter = (sum(d**2 for d in differences) / len(differences))**0.5
+    return jitter
 
-2. **手势识别不准确**
-   - 调整检测置信度参数
-   - 确保手部在摄像头视野内且光线充足
-   - 选择合适的摄像头分辨率
+def predict_response_time(current_load, baseline_time, load_coefficient=1.2):
+    predicted_time = baseline_time * (current_load ** load_coefficient)
+    return predicted_time
+```
 
-3. **鼠标控制延迟**
-   - 降低平滑因子数值
-   - 检查系统性能
-   - 确认选择了正确的摄像头设备
+### Coordinate transformation algorithm
 
-### 依赖版本要求
+#### 1. Normalization
+Make MediaPipe coordinate range[-1,1] to screen pixel coordinates[0, width]×[0,height]
+```python
+screen_x = int((landmark_x + 1) * screen_width / 2)
+screen_y = int((-landmark_y + 1) * screen_height / 2) 
+```
+$$ x_{pixel} = (x_{normalized} + 1) × width/2 $$
+$$ y_{pixel} = (1 - y_{normalized}) × height/2 $$
 
-- Python >= 3.8
-- OpenCV >= 4.5.0
-- MediaPipe >= 0.10.0, < 0.11.0
-- pynput >= 1.7.0
-- Pillow >= 8.0.0
+#### 2. Perspective transformation matrix
+```python
+def calculate_perspective_transform(src_points, dst_points):
+    """
+    src_points: Source plane [(x1,y1), (x2,y2), (x3,y3), (x4,y4)]
+    dst_points: Target plane [(x1',y1'), (x2',y2'), (x3',y3'), (x4',y4')]
+    """
+    matrix = cv2.getPerspectiveTransform(
+        np.float32(src_points), 
+        np.float32(dst_points)
+    )
+    return matrix
+transformed_coords = cv2.perspectiveTransform(
+    np.array([[[landmark_x, landmark_y]]]), 
+    perspective_matrix
+)[0][0]
+```
+#### 4. 平滑控制算法
+```python
+smoothed_x = last_smoothed_x * smoothing_factor + current_x * (1 - smoothing_factor)
+smoothed_y = last_smoothed_y * smoothing_factor + current_y * (1 - smoothing_factor)
+```
+$$ S_t = α × S_{t-1} + (1-α) × X_t$$
+**α = smoothing_factor, S_t is smooth the post-coordinates, X_t is the current coordinates**
 
-## 🤝 贡献指南
+### Predictive smoothing
+```python
+predicted_x = 2 * smoothed_x - last_smoothed_x + acceleration_x * prediction_factor
+predicted_y = 2 * smoothed_y - last_smoothed_y + acceleration_y * prediction_factor
+```
+### Acceleration calculation
+```python
+acceleration_x = (smoothed_x - last_smoothed_x) - (last_smoothed_x - prev_smoothed_x)
+acceleration_y = (smoothed_y - last_smoothed_y) - (last_smoothed_y - prev_smoothed_y)
+```
 
-欢迎提交 Issue 和 Pull Request 来改进项目！
+### 5. Distance check
 
-## 📄 许可证
-
-MIT License
-
-## 🙏 致谢
-
-- [MediaPipe](https://github.com/google/mediapipe) - 手部关键点检测
-- [OpenCV](https://opencv.org/) - 计算机视觉库
-- [pynput](https://pynput.readthedocs.io/) - 输入控制库
+**Euclidean distance calculation**
+```python
+def calculate_euclidean_distance(point1, point2):
+    dx = point1[0] - point2[0]
+    dy = point1[1] - point2[1]
+    dz = point1[2] - point2[2]
+    return math.sqrt(dx*dx + dy*dy + dz*dz)
+```
+$$d = √[(x₂-x₁)² + (y₂-y₁)² + (z₂-z₁)²]$$
