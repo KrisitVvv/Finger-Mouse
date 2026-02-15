@@ -2,6 +2,7 @@
 Base on Google's MediaPipe and OpenCV,support multiple gesture controls for mouse operation.
 ## Usage
 You can use this project to control your mouse with your fingers.The project is used camera input,so you can far away your computer.
+<p align="center"><img width="890" height="550" alt="image" src="https://github.com/user-attachments/assets/f1ed8af3-d41d-4a40-9d9c-ad8548dbbafc" />
 
 ### System architecture design
 #### 1. Modular Design
