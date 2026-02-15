@@ -83,7 +83,6 @@ class MainWindow:
         help_menu.add_command(label="使用说明", command=self._show_help)
         help_menu.add_command(label="关于", command=self._show_about)
     def _show_gesture_thresholds_dialog(self):
-        """显示手势识别阈值设置对话框"""
         dialog = tk.Toplevel(self.root)
         dialog.title("手势识别阈值设置")
         dialog.geometry("400x400")
@@ -334,7 +333,6 @@ class MainWindow:
         else:
             return x, y
     def _apply_conservative_smoothing(self, x: float, y: float) -> Tuple[float, float]:
-        """应用保守平滑策略（用于不稳定情况）"""
         if self.last_result_cache:
             last_x, last_y = self.last_result_cache
             max_change = 0.02  # max change allowed 2%
@@ -457,7 +455,6 @@ class MainWindow:
                 print(f"[ERROR] 预览更新出错: {e}")
     
     def _update_detector(self):
-        """更新手部检测器参数"""
         self.hand_detector.update_parameters(
             self.config_manager.settings.detection_confidence.get(),
             self.config_manager.settings.tracking_confidence.get()
@@ -535,7 +532,7 @@ GitHub: https://github.com/KrisitVvv/
 
 主要功能:
 - 智能手势识别(点击、滚轮、移动)
-- 鼠标控制(移动)
+- 鼠标控制(移动、点击、滚轮)
         """
         messagebox.showinfo("关于", about_text)
     
