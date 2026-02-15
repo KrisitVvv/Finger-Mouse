@@ -2,15 +2,17 @@
 Base on Google's MediaPipe and OpenCV,support multiple gesture controls for mouse operation.
 ## Usage
 You can use this project to control your mouse with your fingers.The project is used camera input,so you can far away your computer.
-<p align="center"><img width="890" height="550" alt="image" src="https://github.com/user-attachments/assets/f1ed8af3-d41d-4a40-9d9c-ad8548dbbafc" />
+<p align="center"><img width="890" height="550" alt="image" src="https://github.com/user-attachments/assets/f1ed8af3-d41d-4a40-9d9c-ad8548dbbafc" />   
 
-### System architecture design
-#### 1. Modular Design
+If you use Windows system,you can try to [realse](https://github.com/KrisitVvv/Finger-Mouse/releases) to download exe file.Else system you need to install python environment to run it.   
+
+## System architecture design
+### 1. Modular Design
 - **Detection Layer**: Responsible for detecting and tracking hand key points
 - **Recognition Layer**: Handles the extraction and classification of gesture features
 - **Control Layer**: Executes mouse simulation and system control
 - **Interface Layer**: Provides user interaction and parameter adjustment
-#### 2. Data flow
+### 2. Data flow
 ```
 Camera input → Image preprocessing → Key point detection → Feature extraction → Gesture recognition → Mouse control → Interface feedback
 ```
