@@ -240,12 +240,14 @@ transformed_coords = cv2.perspectiveTransform(
     perspective_matrix
 )[0][0]
 ```
-#### 4. 平滑控制算法
+#### 3. Smooth control algorithm
 ```python
 smoothed_x = last_smoothed_x * smoothing_factor + current_x * (1 - smoothing_factor)
 smoothed_y = last_smoothed_y * smoothing_factor + current_y * (1 - smoothing_factor)
 ```
-$$ S_t = α × S_{t-1} + (1-α) × X_t$$
+$$ S_t = α × S_{t-1} + (1-α) × X_t $$
+
+
 **α = smoothing_factor, S_t is smooth the post-coordinates, X_t is the current coordinates**
 
 ### Predictive smoothing
