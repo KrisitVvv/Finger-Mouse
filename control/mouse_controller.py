@@ -121,22 +121,6 @@ class MouseController:
         except Exception as e:
             print(f"上滚轮处理出错: {e}")
     
-    def _handle_fist_unified(self):
-        try:
-            if self.mouse_pressed:
-                self.mouse.release(Button.left)
-                self.mouse_pressed = False
-                print("释放鼠标左键（握拳）")
-            
-            # 临时禁用控制
-            self.control_enabled = False
-            self.last_control_disable_time = time.time()
-            
-            print("握拳手势触发，临时禁用控制")
-            
-        except Exception as e:
-            print(f"握拳处理出错: {e}")
-    
     def enable_control(self):
         self.control_enabled = True
         self.last_control_disable_time = 0

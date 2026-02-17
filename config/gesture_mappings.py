@@ -142,12 +142,17 @@ class GestureMapping:
     
     def _execute_stop_control(self, params: dict) -> bool:
         try:
-            self.control_enabled = False
-            self.last_control_disable_time = time.time()
-            self.mouse.release(Button.left)
-            
-            print("鼠标控制已停止（握拳手势）")
-            return True
+            if self.control_enabled==True:
+                self.control_enabled = False
+                self.last_control_disable_time = time.time()
+                self.mouse.release(Button.left)
+                print("鼠标控制已停止")
+                return True
+            else:
+                self.control_enabled = True
+                self.last_control_disable_time = time.time()
+                self.mouse.release(Button.left)
+                return True
         except Exception as e:
             print(f"停止控制执行出错: {e}")
             return False

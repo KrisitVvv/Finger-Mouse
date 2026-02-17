@@ -10,12 +10,12 @@ class CameraManager:
         self.cap: Optional[cv2.VideoCapture] = None
         self.is_initialized = False
         self.camera_index = 0
-        self.width = 640
-        self.height = 480
+        self.width = 1920
+        self.height = 1080
         self.fps = 30
     
-    def initialize(self, camera_index: int = 0, width: int = 640, 
-                   height: int = 480, fps: int = 30) -> bool:
+    def initialize(self, camera_index: int = 0, width: int = 1920, 
+                   height: int = 1080, fps: int = 30) -> bool:
         try:
             self.camera_index = camera_index
             self.width = width

@@ -16,13 +16,13 @@ class Settings:
             'fist_threshold': 0.08,
             'screen_width': 1920,
             'screen_height': 1080,
-            'camera_fps': 15,
+            'camera_fps': 30,
             'camera_width': 640,
             'camera_height': 480,
             'smoothing_factor': 0.3,
             'scroll_sensitivity': 1.0,
             'camera_index': 0,
-            'resolution_preset': '1080p (Full HD)'
+            'resolution_preset': '1080p (FHD)'
         }
         
         self.detection_confidence: Optional[tk.DoubleVar] = None

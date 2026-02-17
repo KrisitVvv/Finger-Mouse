@@ -389,38 +389,47 @@ class MainWindow:
                 "鼠标右键": 1.0,
                 "上滚轮": 1.0,
                 "下滚轮": 1.0,
-                "握拳": 0.5,
+                "握拳": 3.0,
                 "鼠标移动": 0.001
             }
             
             cooldown = cooldown_times.get(gesture, 0.1)
             last_execution = self.last_gesture_execution.get(gesture, 0)
             if current_time - last_execution >= cooldown:
-                self._execute_gesture_action(gesture, hand_landmarks)
+                self._execute_gesture_action(gesture, hand_landmarks,self.mouse_control_enabled)
                 self.last_gesture_execution[gesture] = current_time
             elif self.debug_mode:
                 remaining = cooldown - (current_time - last_execution)
                 print(f"[COOLDOWN] {gesture} 冷却中，剩余 {remaining:.2f}s")
+        else:
+            self._execute_gesture_action(gesture, hand_landmarks,self.mouse_control_enabled)
         self.previous_gesture = gesture
-    def _execute_gesture_action(self, gesture, hand_landmarks):
-        try:
-            if gesture == "鼠标移动":
-                self._handle_mouse_movement(hand_landmarks)
-            elif gesture in ["鼠标点击", "鼠标右键", "上滚轮", "下滚轮"]:
-                self._handle_mouse_action(gesture)
-            elif gesture == "握拳":
-                self._handle_fist_gesture()
-            else:
-                hand_center = self.hand_detector.gesture_recognizer.get_hand_center()
-                self.mouse_controller.handle_gesture(gesture, hand_center)
-                
-            if self.debug_mode:
-                print(f"[EXECUTED] {gesture} 执行完成")
-                
-        except Exception as e:
-            if self.debug_mode:
-                print(f"[ERROR] 执行 {gesture} 失败: {e}")
-    
+    def _execute_gesture_action(self, gesture, hand_landmarks,mouse_control_enabled):
+        if mouse_control_enabled:
+            try:
+                if gesture == "鼠标移动":
+                    self._handle_mouse_movement(hand_landmarks)
+                elif gesture in ["鼠标点击", "鼠标右键", "上滚轮", "下滚轮"]:
+                    self._handle_mouse_action(gesture)
+                elif gesture == "握拳":
+                    self._handle_fist_gesture()
+                else:
+                    hand_center = self.hand_detector.gesture_recognizer.get_hand_center()
+                    self.mouse_controller.handle_gesture(gesture, hand_center)
+                    
+                if self.debug_mode:
+                    print(f"[EXECUTED] {gesture} 执行完成")
+                    
+            except Exception as e:
+                if self.debug_mode:
+                    print(f"[ERROR] 执行 {gesture} 失败: {e}")
+        else:
+            try:
+                if gesture == "握拳":
+                    self._handle_fist_gesture()
+            except Exception as e:
+                if self.debug_mode:
+                    print(f"[ERROR] 执行 {gesture} 失败: {e}")
     def _handle_mouse_movement(self, hand_landmarks):
         hand_center = self.hand_detector.gesture_recognizer.get_hand_center()
         if hand_center:

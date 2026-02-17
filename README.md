@@ -74,9 +74,10 @@ python main.py
 - **Touch the thumb and middle finger together**: Right mouse button
 - **Touch the bottom of the thumb and index finger together**: Scroll up
 - **Touch the thumb on the base of the index finger**: Scroll down
+- **Make a fist**: Switch mouse control
 
 ## Contribution Guidelines 
-Welcome to submit Issues and Pull Requests to improve the project!
+Welcome to submit [Issues](https://github.com/KrisitVvv/Finger-Mouse/issues) or fork the repository then [Pull Requests](https://github.com/KrisitVvv/Finger-Mouse/pulls) to improve the project!
 
 
 ## Thanks
